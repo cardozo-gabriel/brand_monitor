@@ -1,0 +1,1 @@
+"""Leitura e processamento do arquivo de respostas."""

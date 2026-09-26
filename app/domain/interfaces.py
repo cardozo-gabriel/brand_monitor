@@ -1,0 +1,1 @@
+"""Contratos abstratos para inversao de dependencia."""
