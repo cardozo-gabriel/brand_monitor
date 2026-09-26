@@ -1,42 +1,48 @@
+# Documentacao do projeto
+
 ## O que estou construindo
 
-Estou construindo o Brand Monitor para receber respostas de ferramentas de IA e identificar quando elas citam Acme, Zenith ou Nimbus. Depois, vou oferecer uma API para consultar a presenca dessas marcas e adicionar novas respostas.
+Estou construindo o Brand Monitor para receber respostas de ferramentas de IA e identificar quando elas citam Acme, Zenith ou Nimbus. A API permite consultar a presenca das marcas, ver as respostas com mais citacoes e adicionar novas respostas.
 
-## Como as pastas estao organizadas
+## Como organizei o projeto
 
 - Separei `app/api` para receber requisicoes HTTP e devolver respostas.
-- Coloquei em `app/domain` os formatos e regras centrais dos dados.
-- Organizei em `app/services` a logica do produto: limpar dados, encontrar marcas e calcular metricas.
-- Reservei `app/infrastructure` para conversar com o banco de dados.
-- Coloquei em `app/scripts` tarefas como a ingestao inicial, separadas da API.
+- Coloquei em `app/domain` os formatos centrais dos dados.
+- Organizei em `app/services` a limpeza, a deteccao de marcas e as metricas.
+- Reservei `app/infrastructure` para a conexao com o banco e a persistencia.
+- Coloquei em `app/scripts` tarefas que podem ser executadas separadamente da API.
 - Criei `tests` para verificar automaticamente os comportamentos importantes.
 
-Fiz essa divisao para nao misturar, por exemplo, calculos de metricas com detalhes de HTTP ou SQL. A estrutura ja esta criada, mas ainda estou implementando a maior parte do codigo.
+Fiz essa divisao para nao misturar calculos de metricas com detalhes de HTTP ou SQL.
 
-## Decisoes iniciais
+## Decisoes tecnicas
 
-- **FastAPI:** escolhi esse framework e ja o usei no ponto de entrada. Ele tambem facilita descrever os endpoints.
-- **Pydantic:** vou usa-lo para validar os campos recebidos e normalizar datas antes de calcular as metricas ou salvar respostas.
-- **SQLite com SQLAlchemy:** escolhi essa combinacao para guardar os dados localmente sem exigir um servidor de banco separado. A tabela e o repositorio ja estao implementados.
-- **Regras em servicos separados:** deixei deteccao, limpeza e metricas fora da API para poder testa-las de forma independente.
-- **Arquivo de entrada:** vou usar `respostas-exemplo.json`, que contem os registros fornecidos para o desafio.
+- **FastAPI:** escolhi esse framework para criar os endpoints e documentar a API.
+- **Pydantic:** uso-o para validar os campos e normalizar datas antes de salvar as respostas.
+- **SQLite com SQLAlchemy:** escolhi essa combinacao para persistir dados localmente sem exigir um servidor de banco separado.
+- **Regras separadas da API:** deixei deteccao e metricas em servicos para poder testa-las sem fazer requisicoes HTTP.
+- **Arquivo de entrada:** uso `respostas-exemplo.json`, o arquivo fornecido para o desafio.
 
-## Dados encontrados e dificuldades
+## Dados e dificuldades
 
-Encontrei dados que exigem cuidado: o registro `r003` aparece duas vezes, algumas datas usam formatos diferentes, ha valores `null` e uma resposta tem texto vazio. Isso importa porque uma validacao rigida demais pode rejeitar dados que o sistema deveria conseguir tratar.
+Encontrei o registro `r003` duplicado, datas em formatos diferentes, valores `null` e uma resposta vazia. Para IDs repetidos, implementei esta regra: se os registros forem iguais, mantenho uma ocorrencia; se o mesmo ID vier com conteudo diferente, rejeito a carga para nao descartar informacao silenciosamente.
 
-Para IDs repetidos, implementei esta regra: se os registros forem identicos, mantenho uma ocorrencia; se tiverem o mesmo ID mas dados diferentes, paro a ingestao com erro. Assim, nao descarto informacao silenciosamente. Tambem rejeito registros que nao sejam objetos ou nao tenham um ID de texto preenchido.
+Aceito datas ISO, `dia/mes/ano` e `ano/mes/dia`, convertendo as datas reconhecidas para ISO. Datas impossiveis ou em formatos desconhecidos interrompem a ingestao com o numero do registro e o campo que falhou. Mantenho valores nulos e resposta vazia quando o formato do campo permite.
 
-Implementei a leitura de datas ISO, no formato `dia/mes/ano` e no formato `ano/mes/dia`, convertendo os valores reconhecidos para ISO. Uma data impossivel ou em outro formato interrompe a ingestao com o numero do registro e o campo que falhou. Mantive os valores `null` permitidos e a resposta vazia, porque os encontrei no arquivo e eles podem ser resultado da coleta.
+Tambem guardo campos extras do scraping em JSON no banco, para nao descarta-los durante a persistencia.
 
-Implementei a deteccao em `app/services/brand_detector.py`. Ela ignora maiusculas e minusculas, reconhece `A.C.M.E.` e exige limites de palavra para nao tratar, por exemplo, `Acmeish` como mencao. O resultado usa os nomes padronizados `Acme`, `Zenith` e `Nimbus`, sem repetir a mesma marca se ela aparecer varias vezes.
+## Deteccao e metricas
 
-O carregador em `app/scripts/ingest.py` le `respostas-exemplo.json`, valida e normaliza os registros e depois grava as respostas no SQLite. Se eu rodar a ingestao novamente, registros identicos ja salvos sao ignorados. Se um ID salvo tiver conteudo diferente, a transacao e desfeita para nao deixar uma carga pela metade. Tambem guardo campos extras em JSON para nao descarta-los.
+Implementei a deteccao em `app/services/brand_detector.py`. Ela ignora maiusculas e minusculas, reconhece `A.C.M.E.` e exige limites de palavra para nao tratar `Acmeish` como mencao. O resultado usa nomes padronizados e nao repete a mesma marca na resposta.
 
-A deteccao ja esta disponivel como servico; ainda falta usa-la nos calculos e endpoints. Os endpoints e as metricas ainda nao estao funcionando.
+Implementei tres endpoints: `GET /share-of-voice?marca=Acme`, `GET /top-citacoes?n=5` e `POST /respostas`. A marca no share of voice aceita diferencas entre maiusculas e minusculas, mas precisa ser uma das marcas monitoradas.
 
-## Testes e ambiente
+No share of voice, conto respostas unicas que citam a marca e divido pelo total de respostas persistidas. Repito o calculo por nome de plataforma exatamente como foi armazenado e arredondo o percentual para duas casas decimais. Para o ranking, considero mais forte uma resposta que cita mais marcas distintas; em caso de empate, ordeno pelo ID. Respostas sem marcas ficam fora do ranking.
 
-Comecei testando a limpeza porque o arquivo ja tem um ID repetido e datas em formatos diferentes. Os testes confirmam o tratamento das duplicatas, a normalizacao das datas, a preservacao dos nulos e do texto vazio, e a rejeicao de campos ausentes e datas impossiveis. Tambem testei a deteccao de maiusculas, grafia pontuada, repeticoes e limites de palavra. Na persistencia, testo a primeira gravacao, a reingestao sem duplicacao e o rollback quando ha conflito.
+No POST, uma resposta nova retorna `201`; repetir exatamente um registro retorna `200`; reutilizar um ID com outro conteudo retorna `409`; dados invalidos retornam `422`.
 
-O terminal nao tem o pacote `pytest`. Os testes desta etapa usam `unittest`, que faz parte do Python, e podem ser executados com `python -m unittest tests.test_cleaner -v`.
+## Testes
+
+Comecei pela limpeza por causa do ID duplicado e das datas variadas. Os testes cobrem validacao, datas, nulos, duplicatas e deteccao. Para a persistencia e a API, uso bancos SQLite temporarios, assim nao altero o banco local ao testar. Tambem testo percentuais, ordenacao, validacao e codigos HTTP.
+
+Uso `unittest`, que faz parte do Python, e executo a suite com `python -m unittest discover -v`. Adicionei `httpx2` porque a versao atual do Starlette usa esse pacote no cliente de testes HTTP.
