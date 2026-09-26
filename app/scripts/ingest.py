@@ -4,6 +4,14 @@ import json
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy.orm import Session
+
+from app.infrastructure.database import (
+	DEFAULT_DATABASE_URL,
+	create_database_engine,
+	initialize_database,
+)
+from app.infrastructure.repositories import ResponseRepository
 from app.services.data_cleaner import normalize_responses
 
 
@@ -24,9 +32,29 @@ def load_responses(
 	return normalize_responses(responses)
 
 
+def ingest_file(
+	file_path: str | Path = "respostas-exemplo.json",
+	database_url: str = DEFAULT_DATABASE_URL,
+) -> tuple[int, int, int]:
+	"""Valida um arquivo e persiste suas respostas de forma idempotente."""
+	responses = load_responses(file_path)
+	engine = create_database_engine(database_url)
+	try:
+		initialize_database(engine)
+		with Session(engine) as session:
+			inserted_count, skipped_count = ResponseRepository(session).save_many(responses)
+	finally:
+		engine.dispose()
+
+	return len(responses), inserted_count, skipped_count
+
+
 def main() -> None:
-	responses = load_responses()
-	print(f"{len(responses)} respostas prontas apos remover duplicatas.")
+	loaded_count, inserted_count, skipped_count = ingest_file()
+	print(
+		f"{loaded_count} respostas validas: {inserted_count} novas, "
+		f"{skipped_count} ja estavam salvas."
+	)
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ Fiz essa divisao para nao misturar, por exemplo, calculos de metricas com detalh
 
 - **FastAPI:** escolhi esse framework e ja o usei no ponto de entrada. Ele tambem facilita descrever os endpoints.
 - **Pydantic:** vou usa-lo para validar os campos recebidos e normalizar datas antes de calcular as metricas ou salvar respostas.
-- **SQLite com SQLAlchemy:** planejo usar essa combinacao para guardar os dados localmente sem exigir um servidor de banco separado. Ainda falta implementar a persistencia.
+- **SQLite com SQLAlchemy:** escolhi essa combinacao para guardar os dados localmente sem exigir um servidor de banco separado. A tabela e o repositorio ja estao implementados.
 - **Regras em servicos separados:** deixei deteccao, limpeza e metricas fora da API para poder testa-las de forma independente.
 - **Arquivo de entrada:** vou usar `respostas-exemplo.json`, que contem os registros fornecidos para o desafio.
 
@@ -31,10 +31,12 @@ Implementei a leitura de datas ISO, no formato `dia/mes/ano` e no formato `ano/m
 
 Implementei a deteccao em `app/services/brand_detector.py`. Ela ignora maiusculas e minusculas, reconhece `A.C.M.E.` e exige limites de palavra para nao tratar, por exemplo, `Acmeish` como mencao. O resultado usa os nomes padronizados `Acme`, `Zenith` e `Nimbus`, sem repetir a mesma marca se ela aparecer varias vezes.
 
-O carregador em `app/scripts/ingest.py` le `respostas-exemplo.json`, valida e normaliza os registros, e por fim aplica a regra de IDs. A deteccao ja esta disponivel como servico; ainda falta usa-la nos calculos e endpoints. Os endpoints, a persistencia e as metricas ainda nao estao funcionando.
+O carregador em `app/scripts/ingest.py` le `respostas-exemplo.json`, valida e normaliza os registros e depois grava as respostas no SQLite. Se eu rodar a ingestao novamente, registros identicos ja salvos sao ignorados. Se um ID salvo tiver conteudo diferente, a transacao e desfeita para nao deixar uma carga pela metade. Tambem guardo campos extras em JSON para nao descarta-los.
+
+A deteccao ja esta disponivel como servico; ainda falta usa-la nos calculos e endpoints. Os endpoints e as metricas ainda nao estao funcionando.
 
 ## Testes e ambiente
 
-Comecei testando a limpeza porque o arquivo ja tem um ID repetido e datas em formatos diferentes. Os testes confirmam o tratamento das duplicatas, a normalizacao das datas, a preservacao dos nulos e do texto vazio, e a rejeicao de campos ausentes e datas impossiveis. Tambem testei a deteccao de maiusculas, grafia pontuada, repeticoes e limites de palavra. Ainda vou testar metricas e endpoints.
+Comecei testando a limpeza porque o arquivo ja tem um ID repetido e datas em formatos diferentes. Os testes confirmam o tratamento das duplicatas, a normalizacao das datas, a preservacao dos nulos e do texto vazio, e a rejeicao de campos ausentes e datas impossiveis. Tambem testei a deteccao de maiusculas, grafia pontuada, repeticoes e limites de palavra. Na persistencia, testo a primeira gravacao, a reingestao sem duplicacao e o rollback quando ha conflito.
 
 O terminal nao tem o pacote `pytest`. Os testes desta etapa usam `unittest`, que faz parte do Python, e podem ser executados com `python -m unittest tests.test_cleaner -v`.

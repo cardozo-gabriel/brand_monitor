@@ -1,6 +1,6 @@
 # Brand Monitor
 
-Servico para analisar mencoes de marcas em respostas de ferramentas de IA. O projeto esta sendo desenvolvido por etapas; por enquanto, a estrutura existe, mas a API, a ingestao, a persistencia e as metricas ainda precisam ser implementadas.
+Servico para analisar mencoes de marcas em respostas de ferramentas de IA. A ingestao, a validacao dos dados, a deteccao de marcas e a persistencia SQLite ja estao implementadas. A API e as metricas ainda estao em desenvolvimento.
 
 ## Estrutura
 
@@ -11,7 +11,7 @@ Servico para analisar mencoes de marcas em respostas de ferramentas de IA. O pro
 - `app/scripts`: tarefas executadas fora da API, como a ingestao inicial.
 - `tests`: testes das regras e dos comportamentos importantes.
 
-Essa separacao ajuda a testar as regras sem depender diretamente da API ou do banco. Os arquivos ainda estao em grande parte como esqueletos.
+Essa separacao ajuda a testar as regras sem depender diretamente da API ou do banco.
 
 ## Dados de exemplo
 
@@ -23,6 +23,6 @@ As decisoes e dificuldades estao explicadas em [DOCUMENTACAO.md](DOCUMENTACAO.md
 
 ## Desenvolvimento
 
-As dependencias estao listadas em `requirements.txt`. A aplicacao usa FastAPI; SQLite com SQLAlchemy esta previsto para persistencia, mas essa parte ainda nao foi implementada.
+As dependencias estao listadas em `requirements.txt`. A ingestao grava as respostas em `brand_monitor.sqlite3` usando SQLite e SQLAlchemy. Esse banco local e ignorado pelo Git.
 
-Execute os testes atuais com `python -m unittest tests.test_cleaner -v`.
+Execute a ingestao com `python -m app.scripts.ingest` e rode todos os testes com `python -m unittest discover -v`.
