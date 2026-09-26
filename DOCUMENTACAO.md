@@ -29,12 +29,12 @@ Para IDs repetidos, implementei esta regra: se os registros forem identicos, man
 
 Implementei a leitura de datas ISO, no formato `dia/mes/ano` e no formato `ano/mes/dia`, convertendo os valores reconhecidos para ISO. Uma data impossivel ou em outro formato interrompe a ingestao com o numero do registro e o campo que falhou. Mantive os valores `null` permitidos e a resposta vazia, porque os encontrei no arquivo e eles podem ser resultado da coleta.
 
-Na deteccao, vou procurar marcas sem diferenciar maiusculas de minusculas e reconhecer variacoes como `A.C.M.E.`, sem confundir uma marca com parte de outra palavra.
+Implementei a deteccao em `app/services/brand_detector.py`. Ela ignora maiusculas e minusculas, reconhece `A.C.M.E.` e exige limites de palavra para nao tratar, por exemplo, `Acmeish` como mencao. O resultado usa os nomes padronizados `Acme`, `Zenith` e `Nimbus`, sem repetir a mesma marca se ela aparecer varias vezes.
 
-O carregador em `app/scripts/ingest.py` le `respostas-exemplo.json`, valida e normaliza os registros, e por fim aplica a regra de IDs. Os endpoints, a persistencia, a deteccao e as metricas ainda nao estao funcionando.
+O carregador em `app/scripts/ingest.py` le `respostas-exemplo.json`, valida e normaliza os registros, e por fim aplica a regra de IDs. A deteccao ja esta disponivel como servico; ainda falta usa-la nos calculos e endpoints. Os endpoints, a persistencia e as metricas ainda nao estao funcionando.
 
 ## Testes e ambiente
 
-Comecei testando a limpeza porque o arquivo ja tem um ID repetido e datas em formatos diferentes. Os testes confirmam o tratamento das duplicatas, a normalizacao das datas, a preservacao dos nulos e do texto vazio, e a rejeicao de campos ausentes e datas impossiveis. Tambem vou testar deteccao de marcas, metricas e endpoints.
+Comecei testando a limpeza porque o arquivo ja tem um ID repetido e datas em formatos diferentes. Os testes confirmam o tratamento das duplicatas, a normalizacao das datas, a preservacao dos nulos e do texto vazio, e a rejeicao de campos ausentes e datas impossiveis. Tambem testei a deteccao de maiusculas, grafia pontuada, repeticoes e limites de palavra. Ainda vou testar metricas e endpoints.
 
 O terminal nao tem o pacote `pytest`. Os testes desta etapa usam `unittest`, que faz parte do Python, e podem ser executados com `python -m unittest tests.test_cleaner -v`.
