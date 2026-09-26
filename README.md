@@ -15,7 +15,7 @@ Separei essas partes para testar as regras sem depender diretamente da API ou do
 
 ## Dados
 
-`respostas-exemplo.json` e a fonte da ingestao. Contem dados coletados com variacoes de data, valores nulos, uma resposta vazia e um ID duplicado.
+`respostas.json` e a fonte da ingestao. Contem dados coletados com variacoes de data e plataforma, valores nulos, uma resposta vazia e um ID duplicado.
 
 ## API
 
@@ -35,3 +35,5 @@ python -m pip install -r requirements.txt
 Execute a ingestao com `python -m app.scripts.ingest`, rode os testes com `python -m unittest discover -v` e inicie a API com `uvicorn app.main:app --reload`.
 
 As decisoes e dificuldades do desenvolvimento estao em [DOCUMENTACAO.md](DOCUMENTACAO.md).
+
+Com mais tempo, eu adicionaria migracoes versionadas para evoluir o banco sem alterar ou recriar os dados existentes.

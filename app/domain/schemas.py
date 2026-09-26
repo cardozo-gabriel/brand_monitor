@@ -1,9 +1,21 @@
 """Modelos Pydantic e validacao de dados."""
 
 from datetime import datetime
+import re
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+PLATFORM_ALIASES = {
+	"chatgpt": "ChatGPT",
+	"gemini": "Gemini",
+	"perplexity": "Perplexity",
+}
+
+
+def normalize_platform_name(value: str) -> str:
+	platform_key = re.sub(r"[\W_]+", "", value.casefold())
+	return PLATFORM_ALIASES.get(platform_key, value)
 
 
 class ResponseSchema(BaseModel):
@@ -26,6 +38,11 @@ class ResponseSchema(BaseModel):
 		if not value:
 			raise ValueError("Este campo nao pode ficar vazio.")
 		return value
+
+	@field_validator("plataforma")
+	@classmethod
+	def normalize_platform(cls, value: str) -> str:
+		return normalize_platform_name(value)
 
 	@field_validator("data_hora", mode="before")
 	@classmethod

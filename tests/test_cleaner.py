@@ -3,6 +3,7 @@
 import json
 import tempfile
 import unittest
+from collections import Counter
 from pathlib import Path
 
 from app.scripts.ingest import load_responses
@@ -50,13 +51,17 @@ class DeduplicateResponsesTests(unittest.TestCase):
 
 		self.assertEqual(result, [response])
 
-	def test_example_file_loads_ten_unique_responses(self) -> None:
+	def test_response_file_loads_ten_unique_responses_with_canonical_platforms(self) -> None:
 		project_root = Path(__file__).resolve().parents[1]
 
-		result = load_responses(project_root / "respostas-exemplo.json")
+		result = load_responses(project_root / "respostas.json")
 
 		self.assertEqual(len(result), 10)
 		self.assertEqual(len({response["id"] for response in result}), 10)
+		self.assertEqual(
+			Counter(response["plataforma"] for response in result),
+			Counter({"ChatGPT": 5, "Gemini": 3, "Perplexity": 2}),
+		)
 		responses_by_id = {response["id"]: response for response in result}
 		self.assertEqual(responses_by_id["r002"]["data_hora"], "2026-01-15T00:00:00")
 		self.assertEqual(responses_by_id["r006"]["data_hora"], "2026-01-19T00:00:00")

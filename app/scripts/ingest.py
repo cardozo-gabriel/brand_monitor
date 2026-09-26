@@ -16,7 +16,7 @@ from app.services.data_cleaner import normalize_responses
 
 
 def load_responses(
-	file_path: str | Path = "respostas-exemplo.json",
+	file_path: str | Path = "respostas.json",
 ) -> list[dict[str, Any]]:
 	"""Carrega, valida e normaliza as respostas do arquivo JSON."""
 	path = Path(file_path)
@@ -33,7 +33,7 @@ def load_responses(
 
 
 def ingest_file(
-	file_path: str | Path = "respostas-exemplo.json",
+	file_path: str | Path = "respostas.json",
 	database_url: str = DEFAULT_DATABASE_URL,
 ) -> tuple[int, int, int]:
 	"""Valida um arquivo e persiste suas respostas de forma idempotente."""

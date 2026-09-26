@@ -7,6 +7,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from app.infrastructure.database import create_database_engine, initialize_database
+from app.infrastructure.models import ResponseRecord
 from app.infrastructure.repositories import ResponseRepository
 from app.scripts.ingest import ingest_file
 
@@ -64,12 +65,27 @@ class ResponseRepositoryTests(unittest.TestCase):
 
 			self.assertEqual([item.id for item in repository.list_all()], ["existing"])
 
+	def test_initialization_migrates_legacy_platform_aliases(self) -> None:
+		legacy_response = make_response("legacy")
+		legacy_response["plataforma"] = "chat-gpt"
+		with Session(self.engine) as session:
+			session.add(ResponseRecord(**legacy_response, extra_data={}))
+			session.commit()
+
+		initialize_database(self.engine)
+
+		with Session(self.engine) as session:
+			self.assertEqual(
+				ResponseRepository(session).list_all()[0].plataforma,
+				"ChatGPT",
+			)
+
 	def test_ingest_file_persists_the_example_into_sqlite(self) -> None:
 		project_root = Path(__file__).resolve().parents[1]
 		database_path = Path(self.temp_directory.name) / "ingest.sqlite3"
 
 		result = ingest_file(
-			project_root / "respostas-exemplo.json",
+			project_root / "respostas.json",
 			f"sqlite:///{database_path}",
 		)
 

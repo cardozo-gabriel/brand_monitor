@@ -66,11 +66,16 @@ class ApiTests(unittest.TestCase):
 	def test_post_validates_and_saves_response(self) -> None:
 		response = self.client.post(
 			"/respostas",
-			json=make_payload("r1", "Acme foi citada."),
+			json=make_payload("r1", "Acme foi citada.", "chat-gpt"),
 		)
 
 		self.assertEqual(response.status_code, 201)
 		self.assertEqual(response.json()["marcas_mencionadas"], ["Acme"])
+		share_response = self.client.get("/share-of-voice?marca=Acme")
+		self.assertEqual(
+			share_response.json()["por_plataforma"][0]["plataforma"],
+			"ChatGPT",
+		)
 
 	def test_post_is_idempotent_and_rejects_conflicting_id(self) -> None:
 		payload = make_payload("r1", "Acme foi citada.")
