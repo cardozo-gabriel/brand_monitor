@@ -4,13 +4,13 @@ import json
 from pathlib import Path
 from typing import Any
 
-from app.services.data_cleaner import deduplicate_responses
+from app.services.data_cleaner import normalize_responses
 
 
 def load_responses(
 	file_path: str | Path = "respostas-exemplo.json",
 ) -> list[dict[str, Any]]:
-	"""Carrega um JSON de respostas e elimina duplicatas identicas por ID."""
+	"""Carrega, valida e normaliza as respostas do arquivo JSON."""
 	path = Path(file_path)
 	try:
 		with path.open(encoding="utf-8") as responses_file:
@@ -21,7 +21,7 @@ def load_responses(
 	if not isinstance(responses, list):
 		raise ValueError(f"O arquivo '{path}' precisa conter uma lista de respostas.")
 
-	return deduplicate_responses(responses)
+	return normalize_responses(responses)
 
 
 def main() -> None:

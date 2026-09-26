@@ -3,6 +3,29 @@
 from collections.abc import Iterable
 from typing import Any
 
+from pydantic import ValidationError
+
+from app.domain.schemas import ResponseSchema
+
+
+def normalize_responses(responses: Iterable[Any]) -> list[dict[str, Any]]:
+	"""Valida registros, normaliza datas e remove duplicatas idênticas."""
+	normalized_responses = []
+
+	for position, response in enumerate(responses, start=1):
+		try:
+			validated_response = ResponseSchema.model_validate(response)
+		except ValidationError as error:
+			messages = "; ".join(
+				f"{'.'.join(str(part) for part in detail['loc'])}: {detail['msg']}"
+				for detail in error.errors()
+			)
+			raise ValueError(f"O registro {position} e invalido: {messages}") from error
+
+		normalized_responses.append(validated_response.model_dump(mode="json"))
+
+	return deduplicate_responses(normalized_responses)
+
 
 def deduplicate_responses(
 	responses: Iterable[dict[str, Any]],
